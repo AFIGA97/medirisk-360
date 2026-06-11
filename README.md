@@ -95,4 +95,4 @@ Contributions, suggestions, and feedback are always welcome! 💬✨
 ## ⚠️ Disclaimer
 
 - The health risk logic is **for educational/demo purposes only** and is **not** a medical device.  
-- Do not use this app for real diagnosis or treatment decisions; always consult a qualified healthcare professional. 🩺
+- Do not use this app for real diagnosis or treatment decisions; always consult a qualified healthcare professional. 
