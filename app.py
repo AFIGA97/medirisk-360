@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import date
 import re
 import random
+import requests
 
 from db import (
     create_table,
@@ -11,6 +12,9 @@ from db import (
     update_patient,
     delete_patient,
 )
+
+# URL of your Flask prediction API
+API_URL = "http://127.0.0.1:8000/predict"
 
 # Initialize database
 create_table()
@@ -102,39 +106,7 @@ def get_random_health_tip() -> str:
     return random.choice(HEALTH_TIPS)
 
 
-# ------------------ Risk model + validation ------------------
-
-
-def predict_risk(glucose: float, haemoglobin: float, cholesterol: float) -> str:
-    score = 0
-
-    # Glucose check (approx normal range)
-    if glucose < 70 or glucose > 140:
-        score += 1
-
-    # Haemoglobin check (approx normal range)
-    if haemoglobin < 12 or haemoglobin > 16:
-        score += 1
-
-    # Cholesterol check (borderline at 200)
-    if cholesterol >= 200:
-        score += 1
-
-    if score == 0:
-        return (
-            "Low risk based on current glucose, haemoglobin, and cholesterol values. "
-            "Maintain a healthy lifestyle and regular check-ups."
-        )
-    elif score == 1:
-        return (
-            "Moderate risk: one parameter is outside the normal range. "
-            "Consider consulting a healthcare professional and repeating tests."
-        )
-    else:
-        return (
-            "High risk: multiple parameters are outside the normal range. "
-            "Please consult a healthcare professional for detailed evaluation."
-        )
+# ------------------ Validation + styling helpers ------------------
 
 
 def validate_email(email: str) -> bool:
@@ -205,7 +177,22 @@ def show_add_patient_form():
             for e in errors:
                 st.error(e)
         else:
-            remarks = predict_risk(glucose, haemoglobin, cholesterol)
+            # Call external Flask AI/ML API
+            payload = {
+                "glucose": float(glucose),
+                "haemoglobin": float(haemoglobin),
+                "cholesterol": float(cholesterol),
+            }
+
+            try:
+                response = requests.post(API_URL, json=payload, timeout=5)
+                response.raise_for_status()
+                pred = response.json()
+                remarks = pred.get("remark", "No remark from AI API")
+            except Exception as e:
+                st.error(f"Failed to get prediction from AI API: {e}")
+                st.stop()
+
             from db import add_patient  # local import to avoid circular import
 
             add_patient(
@@ -361,9 +348,22 @@ def show_patient_table():
                                 "No changes detected. Please modify some values before updating."
                             )
                         else:
-                            new_remarks = predict_risk(
-                                glucose, haemoglobin, cholesterol
-                            )
+                            # Call external Flask AI/ML API on updated values
+                            payload = {
+                                "glucose": float(glucose),
+                                "haemoglobin": float(haemoglobin),
+                                "cholesterol": float(cholesterol),
+                            }
+
+                            try:
+                                response = requests.post(API_URL, json=payload, timeout=5)
+                                response.raise_for_status()
+                                pred = response.json()
+                                new_remarks = pred.get("remark", "No remark from AI API")
+                            except Exception as e:
+                                st.error(f"Failed to get prediction from AI API: {e}")
+                                st.stop()
+
                             update_patient(
                                 patient_id=pid,
                                 full_name=full_name.strip(),
@@ -408,7 +408,7 @@ def main():
             <h3>Simple labs, smart risk insights.</h3>
             <p>
             This app allows you to add patient blood test details, store them in a database,
-            and generate a simple rule-based AI remark that estimates health risk.
+            and generate an AI-powered remark from an external prediction API that estimates health risk.
             </p>
         </div>
         """,
@@ -425,7 +425,10 @@ def main():
     st.markdown("</div>", unsafe_allow_html=True)
 
     # Sidebar navigation with small branded title
-    st.sidebar.markdown('<div class="sidebar-title">🩺 MediRisk 360</div>', unsafe_allow_html=True)
+    st.sidebar.markdown(
+        '<div class="sidebar-title">🩺 MediRisk 360</div>',
+        unsafe_allow_html=True,
+    )
     menu = ["Home", "Add Patient", "View Patients"]
     choice = st.sidebar.selectbox("Navigation", menu)
 
@@ -457,7 +460,7 @@ def main():
             **How it works**
 
             - Enter patient details and lab values on the *Add Patient* page.  
-            - The app validates the data and applies a simple rule-based AI risk model.  
+            - The app validates the data and calls an external Flask-based AI prediction API.  
             - The generated risk remark is stored in the database and shown in the table.  
             - You can update or delete records at any time from the *View Patients* page.
             """
