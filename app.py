@@ -14,7 +14,7 @@ from db import (
 )
 
 # URL of your Flask prediction API
-API_URL = "http://127.0.0.1:8000/predict"
+API_URL = "https://health-risk-api-0lsl.onrender.com/predict"
 
 # Initialize database
 create_table()
