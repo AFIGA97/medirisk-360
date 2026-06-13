@@ -7,7 +7,7 @@ This project was built as part of the **Junior AI/ML Developer task**.
 https://medirisk-360-nuptfpokzkiwbzyqh8u3ul.streamlit.app/
 
 🔗 **External Health Risk API (Flask on Render)**  
-https://health-risk-api.onrender.com/predict  
+https://health-risk-api-0lsl.onrender.com/predict
 (Used internally by the app; accepts POST requests with lab values.)
 
 ---
